@@ -47,7 +47,7 @@ void addMeasure(uint8_t *buffer,
 
 //====================================================
 
-void sendFTCAN(uint8_t *payload,
+void sendFCAN(uint8_t *payload,
                uint16_t payloadLen)
 {
   byte frame[8];
@@ -228,7 +228,7 @@ void processSpeeduinoData()
       dataBuffer[9];
 
   //--------------------------------------------------
-  // Conversões FTCAN
+  // Conversões FCAN
   //--------------------------------------------------
 
   int rpmFt  = rpm;
