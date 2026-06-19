@@ -3,6 +3,7 @@
 
 #define CAN_CS 10
 #define PIN_2STEP_OUT 13
+#define PIN_START_OUT 4
 
 MCP_CAN CAN(CAN_CS);
 
@@ -23,6 +24,14 @@ uint32_t canID;
 const uint32_t TARGET_ID = 0x923013FF;
 
 bool twoStepButton = false;
+
+//====================================================
+// Botão Start recebido via CAN
+//====================================================
+
+bool startButton   = false;
+unsigned long lastStartMessage = 0;
+const unsigned long START_TIMEOUT = 100;
 
 //====================================================
 // Secondary Serial Speeduino
@@ -97,27 +106,54 @@ void sendFCAN(uint8_t *payload,
 
 void readButtonCAN()
 {
-    if (CAN.checkReceive() != CAN_MSGAVAIL)
-        return;
-
-    unsigned long rxId;
-    byte len;
-    byte rxBuf[8];
-
-    CAN.readMsgBuf(&rxId, &len, rxBuf);
-
-    if (rxId == TARGET_ID &&
-        len >= 5 &&
-        rxBuf[0] == 0xFF &&
-        rxBuf[1] == 0x00 &&
-        rxBuf[2] == 0xEC &&
-        rxBuf[3] == 0x00)
+    while (CAN.checkReceive() == CAN_MSGAVAIL)
     {
-        twoStepButton = (rxBuf[4] == 0x01);
+        unsigned long rxId;
+        byte len;
+        byte rxBuf[8];
 
-        digitalWrite(PIN_2STEP_OUT,
-                     twoStepButton ? HIGH : LOW);
+        CAN.readMsgBuf(&rxId, &len, rxBuf);
+
+        if (rxId != TARGET_ID || len < 5)
+            continue;
+
+        //--------------------------------------------------
+        // 2-Step Button
+        //--------------------------------------------------
+
+        if (rxBuf[0] == 0xFF &&
+            rxBuf[1] == 0x00 &&
+            rxBuf[2] == 0xEC &&
+            rxBuf[3] == 0x00)
+        {
+            twoStepButton = (rxBuf[4] == 0x01);
+
+            digitalWrite(
+                PIN_2STEP_OUT,
+                twoStepButton ? HIGH : LOW
+            );
+        }
+
+        //--------------------------------------------------
+        // Start Button
+        //--------------------------------------------------
+
+if (rxBuf[0] == 0xFF &&
+    rxBuf[1] == 0x00 &&
+    rxBuf[2] == 0xFE &&
+    rxBuf[3] == 0x00)
+{
+    if (rxBuf[4] == 0x01)
+    {
+        lastStartMessage = millis();
+        digitalWrite(PIN_START_OUT, HIGH);
     }
+    else
+    {
+        digitalWrite(PIN_START_OUT, LOW);
+    }
+}
+}
 }
 
 //====================================================
@@ -129,7 +165,9 @@ void setup()
     Serial1.begin(115200);
 
     pinMode(PIN_2STEP_OUT, OUTPUT);
-    digitalWrite(PIN_2STEP_OUT, HIGH);
+    digitalWrite(PIN_2STEP_OUT, LOW);
+      pinMode(PIN_START_OUT, OUTPUT);
+    digitalWrite(PIN_START_OUT, LOW);
 
     while(CAN.begin(MCP_ANY,
                     CAN_1000KBPS,
@@ -173,6 +211,12 @@ void loop()
         bytesReceived = 0;
     }
 
+    
+    if (millis() - lastStartMessage > START_TIMEOUT)
+{
+    digitalWrite(PIN_START_OUT, LOW);
+}
+    
     //--------------------------------------------------
     // Recebe pacote
     //--------------------------------------------------
