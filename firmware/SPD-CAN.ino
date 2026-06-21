@@ -29,7 +29,7 @@ bool twoStepButton = false;
 // Botão Start recebido via CAN
 //====================================================
 
-bool startButton   = false;
+bool startButton = false;
 unsigned long lastStartMessage = 0;
 const unsigned long START_TIMEOUT = 100;
 
@@ -81,7 +81,7 @@ void sendFCAN(uint8_t *payload,
     uint16_t sent = 5;
     uint8_t seg = 1;
 
-    while(sent < payloadLen)
+    while (sent < payloadLen)
     {
         memset(frame, 0, sizeof(frame));
 
@@ -130,30 +130,29 @@ void readButtonCAN()
 
             digitalWrite(
                 PIN_2STEP_OUT,
-                twoStepButton ? HIGH : LOW
-            );
+                twoStepButton ? HIGH : LOW);
         }
 
         //--------------------------------------------------
         // Start Button
         //--------------------------------------------------
 
-if (rxBuf[0] == 0xFF &&
-    rxBuf[1] == 0x00 &&
-    rxBuf[2] == 0xFE &&
-    rxBuf[3] == 0x00)
-{
-    if (rxBuf[4] == 0x01)
-    {
-        lastStartMessage = millis();
-        digitalWrite(PIN_START_OUT, HIGH);
+        if (rxBuf[0] == 0xFF &&
+            rxBuf[1] == 0x00 &&
+            rxBuf[2] == 0xFE &&
+            rxBuf[3] == 0x00)
+        {
+            if (rxBuf[4] == 0x01)
+            {
+                lastStartMessage = millis();
+                digitalWrite(PIN_START_OUT, HIGH);
+            }
+            else
+            {
+                digitalWrite(PIN_START_OUT, LOW);
+            }
+        }
     }
-    else
-    {
-        digitalWrite(PIN_START_OUT, LOW);
-    }
-}
-}
 }
 
 //====================================================
@@ -166,12 +165,13 @@ void setup()
 
     pinMode(PIN_2STEP_OUT, OUTPUT);
     digitalWrite(PIN_2STEP_OUT, LOW);
-      pinMode(PIN_START_OUT, OUTPUT);
+
+    pinMode(PIN_START_OUT, OUTPUT);
     digitalWrite(PIN_START_OUT, LOW);
 
-    while(CAN.begin(MCP_ANY,
-                    CAN_1000KBPS,
-                    MCP_8MHZ) != CAN_OK)
+    while (CAN.begin(MCP_ANY,
+                     CAN_1000KBPS,
+                     MCP_8MHZ) != CAN_OK)
     {
         Serial.println("CAN FAIL");
         delay(1000);
@@ -180,9 +180,9 @@ void setup()
     CAN.setMode(MCP_NORMAL);
 
     canID =
-        ((uint32_t)PRODUCT_ID << 14)
-        | ((uint32_t)DATAFIELD_ID << 11)
-        | MESSAGE_ID;
+        ((uint32_t)PRODUCT_ID << 14) |
+        ((uint32_t)DATAFIELD_ID << 11) |
+        MESSAGE_ID;
 
     Serial.println("FCAN ONLINE");
 }
@@ -199,11 +199,11 @@ void loop()
     // Solicita pacote Secondary Serial
     //--------------------------------------------------
 
-    if(currentTime - lastRequestTime >= requestInterval)
+    if (currentTime - lastRequestTime >= requestInterval)
     {
         lastRequestTime = currentTime;
 
-        while(Serial1.available())
+        while (Serial1.available())
             Serial1.read();
 
         Serial1.write(REQUEST_COMMAND);
@@ -211,19 +211,18 @@ void loop()
         bytesReceived = 0;
     }
 
-    
     if (millis() - lastStartMessage > START_TIMEOUT)
-{
-    digitalWrite(PIN_START_OUT, LOW);
-}
-    
+    {
+        digitalWrite(PIN_START_OUT, LOW);
+    }
+
     //--------------------------------------------------
     // Recebe pacote
     //--------------------------------------------------
 
-    while(Serial1.available())
+    while (Serial1.available())
     {
-        if(bytesReceived < BUFFER_SIZE)
+        if (bytesReceived < BUFFER_SIZE)
         {
             dataBuffer[bytesReceived++] =
                 Serial1.read();
@@ -238,8 +237,8 @@ void loop()
     // Processa pacote
     //--------------------------------------------------
 
-    if(bytesReceived > 0 &&
-       millis() - lastRequestTime > 20)
+    if (bytesReceived > 0 &&
+        millis() - lastRequestTime > 20)
     {
         processSpeeduinoData();
 
@@ -251,7 +250,7 @@ void loop()
 
 void processSpeeduinoData()
 {
-    if(bytesReceived < 80)
+    if (bytesReceived < 80)
         return;
 
     //--------------------------------------------------
@@ -318,17 +317,11 @@ void processSpeeduinoData()
     //--------------------------------------------------
 
     int rpmFc = rpm;
-
     int advFc = advance * 10;
-
     int tpsFc = tps * 10;
-
     int mapFc = map * 10;
-
     int ectFc = ect * 10;
-
     int battFc = batt * 10;
-
     int pwFc = dutyCycle * 10;
 
     //--------------------------------------------------
